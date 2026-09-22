@@ -15,8 +15,17 @@ export default function Contact() {
     className="w-full sm:w-48 px-4 py-3 bg-slate-800 text-amber-400 font-bold rounded-lg border border-amber-500/30 hover:bg-amber-500 hover:text-slate-900 transition-all text-center block"
   >
     E-Posta Gönder
+
   </a>
-  
+    <a 
+    href="https://www.linkedin.com/in/onur-bilgin-925623369/" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className="w-full sm:w-48 px-4 py-3 bg-slate-800 text-amber-400 font-bold rounded-lg border border-amber-500/30 hover:bg-amber-500 hover:text-slate-900 transition-all text-center block"
+  >
+    LinkedIn
+    
+  </a>
   <a 
     href="https://www.instagram.com/0nur.bilgn/" 
     target="_blank" 
@@ -26,14 +35,7 @@ export default function Contact() {
     Instagram
   </a>
   
-  <a 
-    href="https://www.linkedin.com/in/onur-bilgin-925623369/" 
-    target="_blank" 
-    rel="noopener noreferrer"
-    className="w-full sm:w-48 px-4 py-3 bg-slate-800 text-amber-400 font-bold rounded-lg border border-amber-500/30 hover:bg-amber-500 hover:text-slate-900 transition-all text-center block"
-  >
-    LinkedIn
-  </a>
+
 </div>
 
 
