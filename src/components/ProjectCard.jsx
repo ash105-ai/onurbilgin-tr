@@ -1,29 +1,37 @@
-export default function ProjectCard({ title, description, tags, category }) {
+// Kartın tamamı tıklanabilir; proje sayfası yeni sekmede açılır.
+export default function ProjectCard({ slug, title, summary, tags, category, cover }) {
   return (
-    <div className="bg-slate-800 rounded-xl overflow-hidden shadow-lg hover:shadow-amber-500/20 transition-all duration-300 transform hover:-translate-y-2 border border-slate-700">
-      {/* Resim alanı (Şimdilik yer tutucu, ileride kendi görsellerini ekleyeceğiz) */}
-      <div className="h-48 bg-slate-700 w-full flex items-center justify-center">
-        <span className="text-slate-500 font-medium">{category}</span>
+    <a
+      href={`/#/proje/${slug}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex flex-col bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 hover:shadow-amber-500/20 hover:-translate-y-2 transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+    >
+      <div className="aspect-video w-full bg-slate-700 flex items-center justify-center overflow-hidden">
+        {cover ? (
+          <img src={cover} alt={`${title} kapak görseli`} loading="lazy" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-slate-500 font-medium">{category}</span>
+        )}
       </div>
-      
-      <div className="p-6">
+
+      <div className="flex flex-col flex-1 p-6">
+        <p className="text-sm text-amber-400/80 mb-1">{category}</p>
         <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-        <p className="text-slate-400 text-sm mb-4 line-clamp-3">
-          {description}
-        </p>
-        
-        {/* Etiketler (Kullanılan Teknolojiler) */}
-        <div className="flex flex-wrap gap-2">
-          {tags.map((tag, index) => (
-            <span 
-              key={index} 
-              className="px-3 py-1 bg-amber-900/30 text-amber-400 text-xs rounded-full border border-amber-800/50"
-            >
+        <p className="text-slate-400 text-sm mb-4">{summary}</p>
+
+        <div className="flex flex-wrap gap-2 mb-6">
+          {tags.map((tag) => (
+            <span key={tag} className="px-3 py-1 bg-amber-900/30 text-amber-400 text-xs rounded-full border border-amber-800/50">
               {tag}
             </span>
           ))}
         </div>
+
+        <span className="mt-auto text-sm font-semibold text-amber-400 group-hover:underline">
+          Projeyi incele
+        </span>
       </div>
-    </div>
+    </a>
   )
 }

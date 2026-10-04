@@ -6,7 +6,7 @@ export default function Contact() {
           Benimle <span className="text-amber-400">İletişime Geç</span>
         </h2>
         <p className="text-lg text-slate-400 mb-10">
-          Yeni bir otomasyon projesi, yazılım-donanım entegrasyonu veya sadece teknoloji üzerine sohbet etmek için bana ulaşabilirsin.
+          Bana ulaşabileceğiniz farklı yolları aşağıda bulabilirsiniz. Her türlü sorunuz veya işbirliği teklifiniz için bana ulaşmaktan çekinmeyin!
         </p>
         
         <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-16">
@@ -40,7 +40,7 @@ export default function Contact() {
 
 
         <p className="text-sm text-slate-500">
-          © {new Date().getFullYear()} Onur Bilgin. Tüm hakları saklıdır.
+            Welcome to My World
         </p>
       </div>
     </footer>
