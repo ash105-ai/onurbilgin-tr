@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import App from './App'
 import ProjectDetail from './components/ProjectDetail'
 
+// "/bunlarsana" (sonda / olmadan) yazılırsa gizli sayfaya yönlendir.
+if (window.location.pathname === '/bunlarsana') {
+  window.location.replace('/bunlarsana/')
+}
+
 // Adres "/#/proje/<slug>" ise proje sayfası, değilse ana sayfa açılır.
 // Hash kullanıldığı için hosting tarafında ayar gerekmez.
 const getSlug = () => {

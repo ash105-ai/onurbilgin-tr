@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#000000">
+<title>Bunlar sana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif; color: #fdf6ec; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #text { position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 7vh); padding: 0 6vw; text-align: center; pointer-events: none; }
+  #text p { margin: 0; }
+  .l1 { font-size: clamp(30px, 7.2vw, 60px); line-height: 1.12; }
+  .l2 { font-size: clamp(22px, 4.6vw, 36px); margin-top: 1.1rem !important; opacity: .9; }
+  .w { display: inline-block; opacity: 0; transform: translateY(14px); filter: blur(6px);
+       transition: opacity 1.2s ease, transform 1.2s ease, filter 1.2s ease; }
+  .w.on { opacity: 1; transform: none; filter: none; }
+  em { font-style: italic; }
+  #start { position: fixed; inset: 0; z-index: 5; width: 100%; border: 0; background: #000; color: inherit; font: inherit;
+           display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
+           cursor: pointer; transition: opacity 1s ease; }
+  #start.off { opacity: 0; pointer-events: none; }
+  #start b { font-size: clamp(34px, 8vw, 56px); font-style: italic; font-weight: 500; }
+  #start span { font-size: 18px; opacity: .55; }
+  #mute { position: fixed; z-index: 4; right: calc(env(safe-area-inset-right, 0px) + 16px); bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+          width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.4);
+          color: #fff; font-size: 18px; cursor: pointer; opacity: 0; transition: opacity 1s ease; }
+  #mute.show { opacity: .8; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="text"></div>
+<button id="mute" aria-label="Sesi aç/kapat">🔊</button>
+<button id="start"><b>Dokun</b><span>ses açılacak</span></button>
+
+<script>
+(() => {
+  // ====== AYARLAR (istediğin gibi değiştir) ======
+  // *yıldız* içindeki kelimeler italik olur, \n satır atlatır, at = kaç saniye sonra belirsin
+  const LINES = [
+    { cls: 'l1', at: 0.9, text: '*Gerçeğini de alırım ,\nama bunlar solmaz.*' },
+    { cls: 'l2', at: 7.0, text: 'Bunlar senin için canım .' },
+  ];
+  const MUSIC_FILE = '/bunlarsana/muzik.mp3'; // dosya yoksa otomatik yumuşak bir melodi çalar
+  const MUSIC_VOLUME = 0.7;
+
+  // ====== YAZI ======
+  const textBox = document.getElementById('text');
+  const lineWords = LINES.map(L => {
+    const p = document.createElement('p'); p.className = L.cls;
+    const spans = []; let i = 0;
+    L.text.split('\n').forEach((row, r) => {
+      if (r) p.appendChild(document.createElement('br'));
+      row.split(' ').forEach((raw, k, arr) => {
+        const em = /^\*.*\*$/.test(raw);
+        const s = document.createElement('span'); s.className = 'w';
+        s.style.transitionDelay = (i++ * 0.22) + 's';
+        const word = raw.replace(/\*/g, '');
+        if (em) { const e = document.createElement('em'); e.textContent = word; s.appendChild(e); } else s.textContent = word;
+        p.appendChild(s); spans.push(s);
+        if (k < arr.length - 1) p.appendChild(document.createTextNode(' '));
+      });
+    });
+    textBox.appendChild(p); return spans;
+  });
+
+  // ====== ÇİZİM ======
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+  let W, H, DPR, S, SV, BX, BY;
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
+    cv.width = W * DPR; cv.height = H * DPR; ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    S = Math.min(W * 0.95, H * 0.6); SV = H * 0.62; BX = W / 2; BY = H * 0.9;
+  }
+  addEventListener('resize', resize); resize();
+
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const ease = x => 1 - Math.pow(1 - clamp(x), 3);
+  let seed = 7; const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+
+  const PAL = [
+    ['#5a0010', '#c1121f', '#ff7b7b'], ['#6a1b4d', '#d63384', '#ffb3d9'], ['#8a6a4a', '#e8cdb0', '#fff4e6'],
+    ['#7a5a00', '#e0a800', '#ffe066'], ['#4a0e4e', '#b5179e', '#f0a6ff'],
+  ];
+  const N = 9, flowers = [];
+  for (let i = 0; i < N; i++) {
+    const k = i / (N - 1), center = 1 - Math.abs(k - 0.5) * 2;
+    const ang = (k - 0.5) * 1.36 + (rnd() - 0.5) * 0.12, len = 0.5 + center * 0.34 + rnd() * 0.08;
+    const p0 = { x: BX + (rnd() - 0.5) * 0.05, y: 0 };
+    flowers.push({ ang, len, size: 0.11 + rnd() * 0.05 + center * 0.04, pal: PAL[(i * 3) % PAL.length], rot: rnd() * 1.05,
+      ph: rnd() * 6.28, bend: (rnd() - 0.5) * 0.1, x0: (rnd() - 0.5) * 0.05, hue: 120 + rnd() * 15, delay: 0.4 + i * 0.18 });
+  }
+  const heads = [...flowers].sort((a, b) => a.size - b.size);
+  const blades = Array.from({ length: 30 }, () => ({ x0: (rnd() - 0.5) * 0.22, h: 0.18 + rnd() * 0.3, lean: (rnd() - 0.5) * 0.25, d: rnd() * 1.2, ph: rnd() * 6.28 }));
+  const stars = Array.from({ length: 140 }, () => ({ x: rnd(), y: rnd(), r: 0.4 + rnd() * 1.1, ph: rnd() * 6.28, sp: 0.8 + rnd() * 1.8 }));
+
+  const bez = (a, c, b, t) => { const u = 1 - t; return { x: u * u * a.x + 2 * u * t * c.x + t * t * b.x, y: u * u * a.y + 2 * u * t * c.y + t * t * b.y }; };
+  const bezT = (a, c, b, t) => Math.atan2(2 * (1 - t) * (c.y - a.y) + 2 * t * (b.y - c.y), 2 * (1 - t) * (c.x - a.x) + 2 * t * (b.x - c.x));
+
+  function petal(L, w) {
+    ctx.beginPath(); ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(w, -L * 0.25, w * 0.9, -L * 0.75, 0, -L);
+    ctx.bezierCurveTo(-w * 0.9, -L * 0.75, -w, -L * 0.25, 0, 0); ctx.closePath();
+  }
+  function leaf(x, y, ang, len, a) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.globalAlpha = a; ctx.fillStyle = '#3aa655';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(len * 0.5, -len * 0.3, len, 0); ctx.quadraticCurveTo(len * 0.5, len * 0.3, 0, 0); ctx.fill(); ctx.restore();
+  }
+  function bloom(f, x, y, open) {
+    const L = f.size * S * (0.35 + 0.65 * open), w = L * (0.22 + 0.3 * open);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(f.rot);
+    [[1, 0], [0.72, Math.PI / 6]].forEach(([sc, off], ring) => {
+      for (let i = 0; i < 6; i++) {
+        ctx.save(); ctx.rotate(off + i * Math.PI / 3);
+        const g = ctx.createLinearGradient(0, 0, 0, -L * sc);
+        g.addColorStop(0, f.pal[0]); g.addColorStop(0.45, f.pal[1]); g.addColorStop(1, f.pal[2]);
+        ctx.fillStyle = g; ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.lineWidth = 0.8;
+        petal(L * sc, w * sc); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(0, -L * sc * 0.08); ctx.lineTo(0, -L * sc * 0.8); ctx.stroke();
+        if (open > 0.8 && ring === 0) { ctx.fillStyle = 'rgba(70,0,40,.35)'; for (let d = 0; d < 5; d++) { ctx.beginPath(); ctx.arc(((d % 2) - 0.5) * w * 0.35, -L * (0.25 + d * 0.11), L * 0.014, 0, 6.28); ctx.fill(); } }
+        ctx.restore();
+      }
+    });
+    if (open > 0.5) {
+      const k = (open - 0.5) * 2;
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3 + 0.17, r = L * 0.5 * k;
+        ctx.strokeStyle = 'rgba(255,220,150,.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(a) * r, -Math.cos(a) * r); ctx.stroke();
+        ctx.fillStyle = '#ffb703'; ctx.beginPath(); ctx.arc(Math.sin(a) * r, -Math.cos(a) * r, L * 0.035 * k, 0, 6.28); ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  function draw(t) {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    const starIn = clamp((t - 3.5) / 2);
+    stars.forEach(s => { const a = (0.25 + 0.75 * (0.5 + 0.5 * Math.sin(t * s.sp + s.ph))) * starIn; ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, 6.28); ctx.fill(); });
+    const glow = clamp((t - 2.5) / 3);
+    if (glow > 0) { const g = ctx.createRadialGradient(BX, BY - 0.45 * S, 0, BX, BY - 0.45 * S, 0.75 * S); g.addColorStop(0, `rgba(214,51,132,${0.14 * glow})`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+
+    blades.forEach(b => {
+      const p = ease((t - 0.1 - b.d) / 1.8), sw = Math.sin(t * 0.9 + b.ph) * 0.012 * S * p, x0 = BX + b.x0 * S;
+      ctx.strokeStyle = 'hsl(125,45%,34%)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x0, BY);
+      ctx.quadraticCurveTo(x0 + b.lean * S * 0.2, BY - b.h * S * 0.6 * p, x0 + b.lean * S * p + sw, BY - b.h * S * p); ctx.stroke();
+    });
+
+    const tips = new Map();
+    flowers.forEach(f => {
+      const ps = ease((t - f.delay) / 2.2); if (ps <= 0) return;
+      const sw = Math.sin(t * 0.9 + f.ph) * 0.014 * S * ps;
+      const a = { x: BX + f.x0 * S, y: BY }, b = { x: BX + Math.sin(f.ang) * f.len * S + sw, y: BY - Math.cos(f.ang) * f.len * SV };
+      const c = { x: a.x + (b.x - a.x) * 0.25 + f.bend * S + sw * 0.5, y: a.y + (b.y - a.y) * 0.6 };
+      ctx.strokeStyle = `hsl(${f.hue},45%,32%)`; ctx.lineWidth = clamp(S * 0.008, 2, 5); ctx.lineCap = 'round'; ctx.beginPath();
+      for (let j = 0; j <= 28; j++) { const q = bez(a, c, b, ps * j / 28); j ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); } ctx.stroke();
+      [0.32, 0.58].forEach((u, n) => { const g = clamp((ps - u) * 5); if (g > 0) { const q = bez(a, c, b, u), side = (n % 2 ? -1 : 1); leaf(q.x, q.y, bezT(a, c, b, u) + side * 0.9, S * 0.075 * g, 0.9); } });
+      tips.set(f, bez(a, c, b, ps));
+    });
+    heads.forEach(f => { const q = tips.get(f); if (!q) return; const open = ease((t - 2.0 - flowers.indexOf(f) * 0.35) / 2.0); if (open > 0 || t > f.delay + 1.5) bloom(f, q.x, q.y, open); });
+  }
+
+  let running = false, t0 = null;
+  function frame(now) { if (t0 == null) t0 = now; draw((now - t0) / 1000); requestAnimationFrame(frame); }
+  draw(0);
+
+  // ====== MÜZİK ======
+  let audio = null, actx = null, master = null, synthOn = false, muted = false;
+  const muteBtn = document.getElementById('mute');
+  function startSynth() {
+    if (synthOn) return; synthOn = true;
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    master = actx.createGain(); master.gain.value = 0; master.connect(actx.destination);
+    master.gain.setTargetAtTime(muted ? 0 : 0.55, actx.currentTime, 1.2);
+    const dl = actx.createDelay(); dl.delayTime.value = 0.37; const fb = actx.createGain(); fb.gain.value = 0.38; const wet = actx.createGain(); wet.gain.value = 0.5;
+    dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(master);
+    const bus = actx.createGain(); bus.connect(master); bus.connect(dl);
+    const CH = [[220, 261.63, 329.63, 440], [174.61, 220, 261.63, 349.23], [261.63, 329.63, 392, 523.25], [196, 246.94, 293.66, 392]];
+    const PAT = [0, 1, 2, 3, 2, 1, 2, 3];
+    const tone = (f, time, vol, type, dur, attack) => {
+      const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, time); g.gain.exponentialRampToValueAtTime(vol, time + attack); g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+      o.connect(g); g.connect(type === 'sine' ? master : bus); o.start(time); o.stop(time + dur + 0.1);
+    };
+    let step = 0, next = actx.currentTime + 0.1;
+    setInterval(() => {
+      while (next < actx.currentTime + 0.3) {
+        const chord = CH[Math.floor(step / 8) % 4];
+        tone(chord[PAT[step % 8]], next, 0.22, 'triangle', 1.6, 0.01);
+        if (step % 8 === 0) { tone(chord[0] / 2, next, 0.09, 'sine', 4, 1.2); tone(chord[1] / 2, next, 0.07, 'sine', 4, 1.2); }
+        if (Math.random() < 0.2) tone(chord[PAT[step % 8]] * 2, next + 0.25, 0.08, 'triangle', 1.2, 0.01);
+        next += 0.5; step++;
+      }
+    }, 100);
+  }
+  function startMusic() {
+    audio = new Audio(MUSIC_FILE); audio.loop = true; audio.volume = 0;
+    audio.addEventListener('error', () => { audio = null; startSynth(); }, { once: true });
+    audio.play().then(() => { const iv = setInterval(() => { if (!audio) return clearInterval(iv); audio.volume = Math.min(MUSIC_VOLUME, audio.volume + 0.02); if (audio.volume >= MUSIC_VOLUME) clearInterval(iv); }, 100); })
+      .catch(() => { audio = null; startSynth(); });
+  }
+  muteBtn.addEventListener('click', () => {
+    muted = !muted; muteBtn.textContent = muted ? '🔇' : '🔊';
+    if (audio) audio.muted = muted;
+    if (master) master.gain.setTargetAtTime(muted ? 0 : 0.55, actx.currentTime, 0.1);
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { audio && audio.pause(); actx && actx.suspend(); } else if (running) { audio && audio.play().catch(() => {}); actx && actx.resume(); }
+  });
+
+  // ====== BAŞLAT ======
+  document.getElementById('start').addEventListener('click', e => {
+    e.currentTarget.classList.add('off'); running = true; t0 = null;
+    muteBtn.classList.add('show'); startMusic(); requestAnimationFrame(frame);
+    LINES.forEach((L, i) => setTimeout(() => lineWords[i].forEach(s => s.classList.add('on')), L.at * 1000));
+  });
+})();
+</script>
+</body>
+</html>

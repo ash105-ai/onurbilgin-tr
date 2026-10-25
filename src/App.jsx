@@ -3,8 +3,8 @@ import Navbar from './components/Navbar'
 import About from './components/About'
 import Projects from './components/Projects'
 import Contact from './components/Contact'
-
 import bgImage from './assets/bg-image.jpg'
+
 
 function App() {
   const [currentSlide, setCurrentSlide] = useState(0)
